@@ -1,0 +1,92 @@
+curl -O https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh #下载miniconda3
+bash Miniconda3-latest-MacOSX-x86_64.sh #安装miniconda3
+source /Users/shenkefeng/.bash_profile 或者 source ~/.bash_profile #更新环境变量（说明书source ~/.bashrc无效, Linux 里面是 .bashrc 而 Mac 是 .bash_profile）
+conda -h #验证是否安装成功
+conda upgrade conda #升级conda
+conda list #查看已安装的软件列表
+conda-env list #查看env列表
+conda create -n biosoft python=2.7 #创建env
+conda activate biosoft  #切换env
+conda config --get channels #查看镜像源，发现为空
+#逐一添加镜像源，后加入的优先级高
+conda config --add channels conda-forge　　　
+conda config --add channels defaults　　　
+conda config --add channels r　　　
+conda config --add channels bioconda
+conda config --set show_channel_urls yes
+vi ~/.condarc #也可vim编辑器写入镜像源：wq!保存退出
+conda config --add channels conda-forge　　　
+conda config --add channels defaults　　　
+conda config --add channels r　　　
+conda config --add channels bioconda
+conda config --set show_channel_urls yes
+
+
+conda install bwa samtools bcftools vcftools #安装常见生信软件
+https://trace.ncbi.nlm.nih.gov/Traces/sra/sra.cgi?view=software #网页点击下载
+mv sratoolkit.2.9.6-1-mac64.tar ~ #移动文件至家目录biosoft
+tar xzvf sratoolkit.2.9.6-1-mac64.tar #解压文件
+mv sratoolkit.2.9.6-1-mac64 sratoolkit #mv命令 文件夹重命名
+pwd |xargs echo #输出路径
+echo $PATH #查看环境变量
+echo "export PATH=$PATH:/Users/shenkefeng/biosoft/sratoolkit/bin" >> ~/.bash_profile #永久写入环境变量 （vim也可修改，但mac系统有区别，未尝试）
+source .bash_profile #更新 
+
+下载SRA数据库免疫组库项目 Accession: PRJEB32203 ID: 533911
+Next-generation sequencing of immunoglobulin gene rearrangements for clonality assessment: a technical feasibility study by EuroClonality-NGS
+此项目文章今年4月已发表在leukemia杂志，采用PGM平台，Ion Plus Fragment Library Kit试剂盒建库，为单端数据
+采用 ARResT/Interrogate分析，尚未开源
+#随意选取5份sample
+echo ERS3374066 > id
+echo ERS3374067 >> id
+.....
+prefetch --option-file id #批量下载，文件下到~/ncbi/public/sra
+fastq-dump *.sra -O ~/Desktop/Igh #批量转成fastq至指定目录(单端数据，双端数据用fastq-dump --split-3 *.sra）
+cat ERS3374070.fastq | head -100 #随意查看前100行，了解fastq大致结构
+
+
+conda search imseq                               #查询存在imseq否？，不存在
+git clone https://github.com/lkuchenb/imseq.git  #GitHub克隆，依说明安装
+  $cd imseq
+Configure a build directory
+  $mkdir build
+  $cd build
+  $cmake ..  (依网站说明安装cmake  http://macappstore.org/cmake/)
+Build IMSEQ
+  $make imseq
+imseq --help  #安装检验失败，可能未安装C++14 capable compiler及ZLIB
+gcc -v  #查看版本太低，c++ v4.2，可能为失败原因，需在xcode中升级gcc
+rm -rf imseq  #删除目录，放弃尝试
+
+conda remove -n biosoft --all  #尝试安装GATK失败，biosoft各种包非常凌乱，删除env
+
+
+conda search gcc   #发现conda存在gcc，但最高版本4.8
+conda install gcc  #安装gcc
+gcc -v             #版本已升至gcc version 4.8.5 (GCC)，仍然不行，v4.9以上
+rm -rf imseq       #删除imseq
+conda remove gcc   #删除低版本gcc
+
+
+
+brew upgrade        #更新mac包管理工具homebrew(类似conda)
+brew -v             #查看brew版本
+brew list           #查看brew安装软件列表
+brew search gcc     #搜得brew存在gcc
+brew install gcc@8  #安装gcc
+echo "export PATH=/usr/local/Cellar/gcc@8/8.3.0/bin:$PATH" >> ~/.bash_profile #永久写入环境变量，注意变量顺序
+source ~/.bash_profile   #更新一下
+echo $PATH               #可见已写入环境变量
+ln -s gcc-8 gcc          #内置的gcc旧版本与brew新安装的高版本链接起来，重启iterm，gcc升级成功
+重新安装imseq，仍未成功，此次不知错在何处？源码包安装太难！
+
+重拾在线IMGT软件：
+seqkit fq2fa ERS3374070.fastq -o ERS3374070.fa     #fastq转换成fasta格式
+seqkit seq ERS3374070.fa  -w 0 -o  ERS3374070s.fa  #多行fasta转换成单行，输出新文件，上传至IMGT
+
+
+
+
+
+
+
