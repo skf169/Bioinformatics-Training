@@ -33,8 +33,11 @@ samtools rmdup sam/105.bam sam/105rmdup.bam  （与bssh分析结果一致，似�
 #bcftools生成vcf
 方法1.bcftools mpileup bam/105rmdup.bam --fasta-ref bam/BCR_ABL_Reference.fasta| bcftools call -mv -o 105.vcf
 方法2.bcftools mpileup bam/105rmdup.bam --fasta-ref bam/BCR_ABL_Reference.fasta > 105mpl.vcf（genotype likelihoods）
-  bcftools call 105mpl.vcf -c  -v -o 105.vcf(calling snp) 
-方法3.samtools mpileup -gf sam/BCR_ABL_Reference.fasta sam/105rmdup.bam > 105.bcf                                                                                              bcftools call -vm 105.bcf -o 105v.bcf                                                                                                                                    bcftools view -v snps,indels 105v.bcf > 105.vcf                                                                                                                          bcftools filter -o 105f.vcf -i 'QUAL>20 &&DP>5' 105.vcf（过滤低质量数据）      
+     bcftools call 105mpl.vcf -c  -v -o 105.vcf(calling snp) 
+方法3.samtools mpileup -gf sam/BCR_ABL_Reference.fasta sam/105rmdup.bam > 105.bcf
+      bcftools call -vm 105.bcf -o 105v.bcf 
+      bcftools view -v snps,indels 105v.bcf > 105.vcf                                                                                                                          
+      bcftools filter -o 105f.vcf -i 'QUAL>20 &&DP>5' 105.vcf（过滤低质量数据）      
 3种方法vcf结果一致，均不全，未检出bssh分析出的低频突变，不知何故？
 
 #annovar注释vcf
