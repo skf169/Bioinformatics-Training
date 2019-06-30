@@ -1,0 +1,57 @@
+#bwa-mem    fastq比对参考基因组，生成sam文件
+1.建立参考基因组索引
+(conda biosoft) $ bwa index /mnt/f/biosoft/bwa/refg/BCR_ABL_Reference.fasta  
+2.Nextseq双端数据逐条lane比对
+(conda biosoft) $bwa mem /mnt/f/biosoft/bwa/refg/BCR_ABL_Reference.fasta /mnt/f/biosoft/bwa/fastq/105L1R1.fastq.gz /mnt/f/biosoft/bwa/fastq/105L1R2.fastq.gz 
+conda文件目录在C盘，找寻不便，弃用（PS.其实也可指定输出路径）
+bwa mem refg/BCR_ABL_Reference.fasta fastq/105L1R1.fastq.gz fastq/105L1R2.fastq.gz > 105L1.sam
+bwa mem refg/BCR_ABL_Reference.fasta fastq/105L2R1.fastq.gz fastq/105L2R2.fastq.gz > 105L2.sam
+bwa mem refg/BCR_ABL_Reference.fasta fastq/105L3R1.fastq.gz fastq/105L3R2.fastq.gz > 105L3.sam
+bwa mem refg/BCR_ABL_Reference.fasta fastq/105L4R1.fastq.gz fastq/105L4R2.fastq.gz > 105L4.sam
+
+#samtools处理sam文件
+1.view   sam to bam
+samtools view -Sb sam/105L1.sam > sam/105L1.bam
+samtools view -Sb sam/105L2.sam > sam/105L2.bam
+samtools view -Sb sam/105L3.sam > sam/105L3.bam
+samtools view -Sb sam/105L4.sam > sam/105L4.bam
+samtools flagstat sam/105L1.bam（查看flag统计信息并输出）
+2.sort  
+samtools sort -o sam/105L1sorted.bam sam/105L1.bam 
+samtools sort -o sam/105L2sorted.bam sam/105L2.bam 
+samtools sort -o sam/105L3sorted.bam sam/105L3.bam 
+samtools sort -o sam/105L4sorted.bam sam/105L4.bam 
+3.merge 
+samtools merge sam/105.bam sam/*.bam(通配符*）
+4.index
+samtools index sam/105.bam
+5.tview
+IgV查看run完的bam，发现缺失近一半靶区reads，不知何故？(rmdup后解决，内存不足，无法载入所致）
+6.rmdup 业内推荐Picard's MarkDuplicates
+samtools rmdup sam/105.bam sam/105rmdup.bam  （与bssh分析结果一致，似乎更佳？）
+
+#bcftools生成vcf
+方法1.bcftools mpileup bam/105rmdup.bam --fasta-ref bam/BCR_ABL_Reference.fasta| bcftools call -mv -o 105.vcf
+方法2.bcftools mpileup bam/105rmdup.bam --fasta-ref bam/BCR_ABL_Reference.fasta > 105mpl.vcf（genotype likelihoods）
+  bcftools call 105mpl.vcf -c  -v -o 105.vcf(calling snp) 
+方法3.samtools mpileup -gf sam/BCR_ABL_Reference.fasta sam/105rmdup.bam > 105.bcf                                                                                              bcftools call -vm 105.bcf -o 105v.bcf                                                                                                                                    bcftools view -v snps,indels 105v.bcf > 105.vcf                                                                                                                          bcftools filter -o 105f.vcf -i 'QUAL>20 &&DP>5' 105.vcf（过滤低质量数据）      
+3种方法vcf结果一致，均不全，未检出bssh分析出的低频突变，不知何故？
+
+#annovar注释vcf
+ perl annotate_variation.pl -buildver hg19 -downdb -webfrom annovar refGene humandb/ (下载refGene数据库）
+ perl annotate_variation.pl -buildver hg19 -downdb -webfrom annovar clinvar_20190305 humandb/ （下载clinvar数据库）
+ perl annotate_variation.pl -buildver hg19 -downdb -webfrom annovar popfreq_max_20150413 humandb/ （下载popfreq_max_20150413数据库）
+ 绝大数据库annovar已整理，通过上述命令即可下载最新版本，但个别数据库需要手动下载并处理，如cosmic v71版本后
+ perl prepare_annovar_user.pl -dbtype cosmic CosmicMutantExport.tsv.gz -vcf CosmicCodingMuts.vcf.gz > hg19_cosmic87_coding.txt(创建失败，可能版本太新缘故）
+
+ annovar自带软件预处理vcf，参数不同，过滤信息不同
+ perl convert2annovar.pl -format vcf4 vcf/112.vcf.gz -outfile vcf/112.avinput（无DP）
+ perl convert2annovar.pl -format vcf4 vcf/112.vcf.gz -outfile vcf/112.withzyg -include -withzyg（含DP等信息）
+ 
+ perl table_annovar.pl vcf/112.avinput humandb/ -buildver hg19 -out 112S -remove -protocol refGene,cytoBand,popfreq_max_20150413,avsnp150,dbnsfp35c,clinvar_20190305,cosmic70 -operation gx,r,f,f,f,f,f -nastring . -csvout -polish -xref example/gene_xref.txt
+
+ perl table_annovar.pl vcf/112.withzyg humandb/ -buildver hg19 -out 112T -remove -protocol refGene,cytoBand,popfreq_max_20150413,avsnp150,dbnsfp35c,clinvar_20190305,cosmic70 -operation gx,r,f,f,f,f,f -nastring . -csvout -polish -xref example/gene_xref.txt
+ 尚不知如何注释出DP,freq等信息？
+
+
+
