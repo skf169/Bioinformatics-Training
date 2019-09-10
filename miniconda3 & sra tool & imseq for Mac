@@ -84,9 +84,3 @@ ln -s gcc-8 gcc          #内置的gcc旧版本与brew新安装的高版本链�
 seqkit fq2fa ERS3374070.fastq -o ERS3374070.fa     #fastq转换成fasta格式
 seqkit seq ERS3374070.fa  -w 0 -o  ERS3374070s.fa  #多行fasta转换成单行，输出新文件，上传至IMGT
 
-
-
-
-
-
-
