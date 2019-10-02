@@ -1,3 +1,11 @@
 conda create -n GATK python=3.7  # 创建GTAK env
 conda activate GATK              # 激活GATK
 conda install gatk4=4.1          # 安装gatk
+
+
+gatk FastqToSam \
+F1=forward_reads.fastq \
+F2=reverse_reads.fastq \
+O=unaligned.bam \
+SM=LY2
+频繁报错，无法找出原因！
